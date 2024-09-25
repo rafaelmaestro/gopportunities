@@ -1,19 +1,19 @@
 package main
 
 import (
-	"github.com/rafaelmaestro/gopportunities/src/config"
-	"github.com/rafaelmaestro/gopportunities/src/db"
-	"github.com/rafaelmaestro/gopportunities/src/http"
-	"github.com/rafaelmaestro/gopportunities/src/preco"
+	"github.com/rafaelmaestro/gopportunities/src/modules/preco"
+	"github.com/rafaelmaestro/gopportunities/src/providers/config"
+	"github.com/rafaelmaestro/gopportunities/src/providers/db"
+	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
 	"go.uber.org/fx"
 )
 
 func main() {
 	app := fx.New(
-		config.Module,
-		db.Module,
-		http.Module,
-		preco.Module,
+		fx.Provide(config.Init),
+		db.Module(),
+		httpServer.Module(),
+		preco.Module(),
 	)
 	app.Run()
 }
