@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
+	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
 	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
 )
 
@@ -20,13 +21,16 @@ type CriarPrecoResponseProps struct {
 	Nome string `json:"nome"`
 	Valor float64 `json:"valor"`
 }
+
 func HealthCheck(
 	server *httpServer.HttpServer,
+	kafkaProducer akafka.IKafkaProducer,
 	usecase usecase.ICriarPrecoUseCase,
 ) any {
 	precoGroup := server.Group("/preco")
 
-	precoGroup.GET("/internal/connector/health", func(pctx echo.Context) (err error) {
+	precoGroup.GET("/health", func(pctx echo.Context) (err error) {
+		kafkaProducer.SendMessage("test", "Hello World 2", "key_teste")
 		return pctx.JSON(http.StatusOK, map[string]string{"status": "healthy"})
 	})
 	return nil

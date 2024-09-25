@@ -14,7 +14,14 @@ type DbConfig struct {
 	ConnectionRetries int    `env:"CONNECTION_RETRIES"`
 }
 
+type KafkaConfig struct {
+	Brokers           string `env:"BROKERS"`
+	ConnectionRetries int    `env:"CONNECTION_RETRIES"`
+	ProducerRetries   int    `env:"PRODUCER_RETRIES"`
+}
+
 type Config struct {
-	Http HttpConfig
-	Db   DbConfig `envPrefix:"DB_"`
+	Http  HttpConfig
+	Db    DbConfig    `envPrefix:"DB_"`
+	Kafka KafkaConfig `envPrefix:"KAFKA_"`
 }

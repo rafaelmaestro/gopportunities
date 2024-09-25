@@ -28,6 +28,10 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 		} else {
 			break
 		}
+
+		if dbConnectionRetries == 0 {
+			return nil, err
+		}
 	}
 
 	// TODO: Migrate models (define where to put this)

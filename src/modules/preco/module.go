@@ -4,6 +4,7 @@ import (
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/controllers"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/repositories"
+	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
 	"go.uber.org/fx"
 )
 
@@ -27,6 +28,7 @@ func Module() fx.Option {
 		fx.Provide(fx.Annotate(
 			usecase.NewCriarPrecoUseCase, fx.As(new(usecase.ICriarPrecoUseCase)),
 		)),
+		fx.Provide(fx.Annotate(akafka.NewKafkaProducer, fx.As(new(akafka.IKafkaProducer)))),
 		fx.Invoke(controllers.HealthCheck),
 
 		// Should initialize all the router groups using Invoke	below
