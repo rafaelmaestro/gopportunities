@@ -1,56 +1,34 @@
 package akafka
 
 import (
-	"fmt"
 	"log/slog"
+	"os"
 
-	"github.com/IBM/sarama"
+	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 )
 
+// TODO: refactor to use configs and all the other stuff
+
 type IKafkaProducer interface {
 	SendMessage(topic string, message string, key string) error
-	Close() error
 }
 
 type AKafkaProducer struct  {
-	producer sarama.SyncProducer
+	producer *kafka.Producer
 }
 
 func NewKafkaProducer(config *config.Config) (*AKafkaProducer, error) {
-	kafkaConnectionRetries := config.Kafka.ConnectionRetries
+	kafkaProducer, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers": "localhost:9091",
+		"client.id": "gopportunities",
+		"acks": "all",
+	})
 
-
-	fmt.Println(config.Kafka.Brokers)
-
-	brokers := []string{"localhost:9091"}
-
-	fmt.Println(brokers)
-
-	kafkaConfig := sarama.NewConfig()
-
-	kafkaConfig.Producer.Return.Successes = true
-	kafkaConfig.Producer.RequiredAcks = sarama.WaitForAll
-	kafkaConfig.Producer.Retry.Max = config.Kafka.ProducerRetries
-
-
-	var kafkaProducer sarama.SyncProducer
-	var err error
-
-	for kafkaConnectionRetries > 0 {
-		kafkaProducer, err = sarama.NewSyncProducer(brokers, kafkaConfig)
-
-		if err != nil {
-			slog.Error("Failed to start a kafka producer", "error", err)
-			slog.Error("Retrying to connect to kafka... ", "retries", kafkaConnectionRetries)
-			kafkaConnectionRetries--
-		} else {
-			break
-		}
-
-		if kafkaConnectionRetries == 0 {
-			return nil, err
-		}
+	if err != nil {
+		slog.Error("Failed to start a kafka producer", "error", err)
+		os.Exit(1)
+		return nil, err
 	}
 
 	return &AKafkaProducer{
@@ -59,24 +37,31 @@ func NewKafkaProducer(config *config.Config) (*AKafkaProducer, error) {
 }
 
 func (p *AKafkaProducer) SendMessage(topic string, message string, key string) error {
-	kafkaMessage := &sarama.ProducerMessage{
-		Topic: topic,
-		Key: sarama.StringEncoder(key),
-		Value: sarama.StringEncoder(message),
-	}
 
-	partition, offset, err := p.producer.SendMessage(kafkaMessage)
+	deliveryChan := make(chan kafka.Event, 100000)
+
+	err := p.producer.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+		Value: []byte(message),
+	},
+		deliveryChan,
+	)
 
 	if err != nil {
-		slog.Error("Failed to send message to kafka", "error", err)
+		slog.Error("Failed to produce message", "error", err)
 		return err
 	}
 
-	slog.Debug("Message is stored in topic/partition/offset", "topic", topic, "partition", partition, "offset", offset)
+	e := <-deliveryChan
+
+	m := e.(*kafka.Message)
+
+	if m.TopicPartition.Error != nil {
+		slog.Error("Delivery failed", "error", m.TopicPartition.Error)
+		return m.TopicPartition.Error
+	} else {
+		slog.Info("Delivered message to topic", "topic", *m.TopicPartition.Topic)
+	}
 
 	return nil
-}
-
-func (p *AKafkaProducer) Close() error {
-	return p.producer.Close()
 }

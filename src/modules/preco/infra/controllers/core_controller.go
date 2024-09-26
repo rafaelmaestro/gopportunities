@@ -24,13 +24,24 @@ type CriarPrecoResponseProps struct {
 
 func HealthCheck(
 	server *httpServer.HttpServer,
+) any {
+	precoGroup := server.Group("/preco")
+
+	precoGroup.GET("/health", func(pctx echo.Context) (err error) {
+		return pctx.JSON(http.StatusOK, map[string]string{"status": "healthy"})
+	})
+	return nil
+}
+
+func Teste(
+	server *httpServer.HttpServer,
 	kafkaProducer akafka.IKafkaProducer,
 	usecase usecase.ICriarPrecoUseCase,
 ) any {
 	precoGroup := server.Group("/preco")
 
-	precoGroup.GET("/health", func(pctx echo.Context) (err error) {
-		kafkaProducer.SendMessage("test", "Hello World 2", "key_teste")
+	precoGroup.GET("/teste", func(pctx echo.Context) (err error) {
+		kafkaProducer.SendMessage("test", "teste", "teste")
 		return pctx.JSON(http.StatusOK, map[string]string{"status": "healthy"})
 	})
 	return nil

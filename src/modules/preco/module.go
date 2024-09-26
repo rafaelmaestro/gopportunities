@@ -29,7 +29,11 @@ func Module() fx.Option {
 			usecase.NewCriarPrecoUseCase, fx.As(new(usecase.ICriarPrecoUseCase)),
 		)),
 		fx.Provide(fx.Annotate(akafka.NewKafkaProducer, fx.As(new(akafka.IKafkaProducer)))),
+		// fx.Invoke(akafka.NewKafkaProducer),
+
+		// fx.Invoke(akafka.NewKafkaConsumer),
 		fx.Invoke(controllers.HealthCheck),
+		fx.Invoke(controllers.Teste),
 
 		// Should initialize all the router groups using Invoke	below
 		// fx.Invoke(createPrecoRouter),

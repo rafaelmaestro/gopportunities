@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco"
-	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	"github.com/rafaelmaestro/gopportunities/src/providers/db"
 	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
@@ -15,7 +14,6 @@ func main() {
 		db.Module(),
 		httpServer.Module(),
 		preco.Module(),
-		fx.Invoke(akafka.NewKafkaProducer),
 	)
 
 	app.Run()
