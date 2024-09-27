@@ -1,7 +1,7 @@
 package config
 
 type HttpConfig struct {
-	AppPort string `env:"APP_PORT"`
+	HttpPort string `env:"HTTP_PORT"`
 }
 
 type DbConfig struct {
@@ -20,8 +20,13 @@ type KafkaConfig struct {
 	ProducerRetries   int    `env:"PRODUCER_RETRIES"`
 }
 
+type AppConfig struct {
+	AppLogLevel string `env:"LOG_LEVEL"`
+}
+
 type Config struct {
 	Http  HttpConfig
+	App   AppConfig   `envPrefix:"APP_"`
 	Db    DbConfig    `envPrefix:"DB_"`
 	Kafka KafkaConfig `envPrefix:"KAFKA_"`
 }

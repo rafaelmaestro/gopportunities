@@ -5,6 +5,7 @@ import (
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/controllers"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/repositories"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
+	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	"go.uber.org/fx"
 )
 
@@ -29,13 +30,24 @@ func Module() fx.Option {
 			usecase.NewCriarPrecoUseCase, fx.As(new(usecase.ICriarPrecoUseCase)),
 		)),
 		fx.Provide(fx.Annotate(akafka.NewKafkaProducer, fx.As(new(akafka.IKafkaProducer)))),
-		// fx.Invoke(akafka.NewKafkaProducer),
 
-		// fx.Invoke(akafka.NewKafkaConsumer),
-		fx.Invoke(controllers.HealthCheck),
-		fx.Invoke(controllers.Teste),
+		// Should initialize the controllers and call the registerRoutes methods with fx.Invoke
+        fx.Provide(controllers.NewPrecoController),
+        fx.Invoke(func(precoController *controllers.PrecoController) {
+            precoController.RegisterRoutes()
+        }),
 
-		// Should initialize all the router groups using Invoke	below
-		// fx.Invoke(createPrecoRouter),
+		// Should configure the AKafkaConsumer struct providing the consumerGroup and topics
+		// This turns the AKafkaConsumer struct into a dependency that can be injected into the NewKafkaConsumer function
+		// Doing this, we can create consumers with different configurations for different modules
+		fx.Provide(func() *akafka.AKafkaConsumer {
+			return &akafka.AKafkaConsumer{
+				ConsumerGroup: "gopportunities-preco",   // Defina o nome do grupo de consumidores
+				Topics: []string{"test", "test2"},  // Defina os tópicos que deseja consumir
+			}
+		}),
+		fx.Invoke(func(config *config.Config, consumer *akafka.AKafkaConsumer) {
+			akafka.NewKafkaConsumer(config, consumer)
+		}),
 	)
 }

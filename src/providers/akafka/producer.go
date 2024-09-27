@@ -3,6 +3,7 @@ package akafka
 import (
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
@@ -23,7 +24,12 @@ func NewKafkaProducer(config *config.Config) (*AKafkaProducer, error) {
 		"bootstrap.servers": "localhost:9091",
 		"client.id": "gopportunities",
 		"acks": "all",
+		"batch.num.messages": 10,
+		"queue.buffering.max.messages": 100000,
+		"retries": 10,
+
 	})
+
 
 	if err != nil {
 		slog.Error("Failed to start a kafka producer", "error", err)
@@ -41,6 +47,7 @@ func (p *AKafkaProducer) SendMessage(topic string, message string, key string) e
 	deliveryChan := make(chan kafka.Event, 100000)
 
 	err := p.producer.Produce(&kafka.Message{
+		Timestamp: time.Now(),
 		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
 		Value: []byte(message),
 	},
@@ -60,6 +67,7 @@ func (p *AKafkaProducer) SendMessage(topic string, message string, key string) e
 		slog.Error("Delivery failed", "error", m.TopicPartition.Error)
 		return m.TopicPartition.Error
 	} else {
+		// TODO: change to debug
 		slog.Info("Delivered message to topic", "topic", *m.TopicPartition.Topic)
 	}
 

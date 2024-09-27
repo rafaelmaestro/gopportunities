@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
@@ -12,7 +13,8 @@ import (
 )
 
 type HttpServer struct {
-	*echo.Echo
+	AppServer *echo.Echo
+	AppGroup *echo.Group
 }
 
 // func NewHttpServer(lc fx.Lifecycle, config *config.Config) (*HttpServer, error) {
@@ -68,8 +70,12 @@ func NewServer(
 			return nil
 		},
 	})
+
+	appGroup := server.Group(fmt.Sprintf("/%s", os.Getenv("APP_NAME")))
+
 	return &HttpServer{
 		server,
+		appGroup,
 	}
 
 }

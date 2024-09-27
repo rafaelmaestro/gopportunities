@@ -28,9 +28,10 @@ func Get() Config {
 }
 
 // Init will start all the environments variable into the Config struct
+// TODO: change the value below to the correct app name
 func Init() *Config {
 	cfg := Config{}
-	load("api-test", &cfg)
+	load("gopportunities", &cfg)
 	_global.Store(cfg)
 	return &cfg
 }
