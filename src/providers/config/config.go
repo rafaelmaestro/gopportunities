@@ -21,7 +21,8 @@ type KafkaConfig struct {
 }
 
 type AppConfig struct {
-	AppLogLevel string `env:"LOG_LEVEL"`
+	AppLogLevel  string `env:"LOG_LEVEL"`
+	AppLogOutput string `env:"LOG_OUTPUT"`
 }
 
 type Config struct {

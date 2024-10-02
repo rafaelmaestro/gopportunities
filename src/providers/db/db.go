@@ -2,8 +2,8 @@ package db
 
 import (
 	"fmt"
-	"log/slog"
 
+	"github.com/fnunezzz/go-logger"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -14,15 +14,17 @@ type GormDatabase struct {
 }
 
 func NewDatabase(config *config.Config) (*GormDatabase, error) {
+	sLog := logger.Get()
+
 	dbConnectionRetries := config.Db.ConnectionRetries
 	dbUri := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable TimeZone=America/Sao_Paulo", config.Db.Host, config.Db.Port, config.Db.User, config.Db.Name, config.Db.Pass)
 
-	// TODO: Montar conexão à depender do driver
+	// TODO: Montar conexão à depender do driver (postgres, mysql, etc)
 	db, err := gorm.Open(postgres.Open(dbUri), &gorm.Config{})
 
 	for dbConnectionRetries > 0 {
 		if err != nil {
-			slog.Error("Failed to connect to database, retrying...", "error", err)
+			sLog.Errorf("failed to connect to database, retrying %d, error: %s", dbConnectionRetries, err)
 			dbConnectionRetries--
 			db, err = gorm.Open(postgres.Open(dbUri), &gorm.Config{})
 		} else {
@@ -35,7 +37,6 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 	}
 
 	// TODO: Migrate models (define where to put this)
-	// slog.Debug("Migrating database...")
 	// db.AutoMigrate(&model.PrecoModel{})
 
 	return &GormDatabase{

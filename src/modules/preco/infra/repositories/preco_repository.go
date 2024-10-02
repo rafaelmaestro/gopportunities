@@ -16,18 +16,17 @@ type IPrecoRepository interface {
 
 type PrecoRepository struct {
 	database *db.GormDatabase
+	mapper  *mappers.PrecoMapper
 }
 
 func NewPrecoRepository(database *db.GormDatabase) *PrecoRepository {
-	// construir instancia de repositorio passando as instancias de conexão com banco de dados
 	return &PrecoRepository{
 		database: &db.GormDatabase{},
 	}
 }
 
 func (r *PrecoRepository) Create(preco *domain.PrecoAggregate) error {
-	// converter de domain.PrecoAggregate para model.PrecoModel
-	precoModel := mappers.ToModel(preco)
+	precoModel := r.mapper.ToModel(preco)
 
 	if precoModel == nil {
 		return ErrFalhaAoPersistirObjeto

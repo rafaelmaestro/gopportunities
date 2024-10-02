@@ -1,11 +1,14 @@
 package controllers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
+	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
 )
 
@@ -23,17 +26,18 @@ type CriarPrecoResponseProps struct {
 }
 
 type PrecoController struct {
+	config *config.Config
 	httpServer *httpServer.HttpServer
 	kafkaProducer akafka.IKafkaProducer
 	criarPrecoUseCase usecase.ICriarPrecoUseCase
 }
 
 func NewPrecoController(
+	config *config.Config,
 	httpServer *httpServer.HttpServer,
 	kafkaProducer akafka.IKafkaProducer,
 	usecase usecase.ICriarPrecoUseCase,
 ) *PrecoController {
-
 	httpPrecoGroup := httpServer.AppGroup.Group("/preco")
 
 	httpServer.AppGroup = httpPrecoGroup
@@ -48,7 +52,10 @@ func NewPrecoController(
 func (precoController PrecoController) RegisterRoutes() {
 	precoController.httpServer.AppGroup.GET("/health", precoController.HealthCheck)
 	precoController.httpServer.AppGroup.GET("/teste", precoController.Teste)
-	precoController.httpServer.AppGroup.GET("/teste2", precoController.Teste2)
+}
+
+func (precoController PrecoController) RegisterEventListeners() {
+	precoController.Teste2()
 }
 
 func (precoController PrecoController) HealthCheck(pctx echo.Context) error {
@@ -59,15 +66,23 @@ func (precoController PrecoController) HealthCheck(pctx echo.Context) error {
 }
 
 func (precoController PrecoController) Teste(pctx echo.Context) error {
-	precoController.kafkaProducer.SendMessage("test", "teste", "teste")
+	precoController.kafkaProducer.SendMessage(pctx.Request().Context(), "test", "teste", "teste", nil)
 	return pctx.JSON(http.StatusOK, map[string]string{"status": "healthy"})
 }
 
-func (precoController PrecoController) Teste2(
-	pctx echo.Context,
-) error {
-	precoController.kafkaProducer.SendMessage("test2", "teste2", "teste2")
-	return pctx.JSON(http.StatusOK, map[string]string{"status": "healthy"})
+func (precoController PrecoController) Teste2() error {
+	kafkaConsumerConfig := &akafka.AKafkaConsumerConfig{
+		ConsumerGroup: "gopportunities-preco",
+		Topic: "test",
+		Handle: func(ctx context.Context, msg *akafka.AKafkaMessage) error {
+			fmt.Printf("[Handler Function] Received message at offset %d: %s = %s\n", msg.AMessage.Offset, string(msg.AMessage.Key), string(msg.AMessage.Value))
+			return nil
+		},
+	}
+	go akafka.NewKafkaConsumer(context.Background(), precoController.config, kafkaConsumerConfig)
+
+
+	return nil
 }
 
 

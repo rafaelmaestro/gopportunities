@@ -1,20 +1,16 @@
 package preco
 
 import (
+	"context"
+	"log"
+
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/controllers"
+	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/mappers"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/repositories"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
-	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	"go.uber.org/fx"
 )
-
-// func createCoreRouter(server http.HttpServer, controller *controllers.CoreController) {
-//     server.RegisterGroup("/preco", func(group http.RouteGroup) {
-//         group.RegisterRoute("POST", "", controller.CriarPreco) // O contexto é passado como interface
-//         // Adicione mais rotas aqui, se necessário
-//     })
-// }
 
 func Module() fx.Option {
 	return fx.Module(
@@ -29,25 +25,30 @@ func Module() fx.Option {
 		fx.Provide(fx.Annotate(
 			usecase.NewCriarPrecoUseCase, fx.As(new(usecase.ICriarPrecoUseCase)),
 		)),
-		fx.Provide(fx.Annotate(akafka.NewKafkaProducer, fx.As(new(akafka.IKafkaProducer)))),
+		fx.Provide(fx.Annotate(
+			mappers.NewPrecoMapper, fx.As(new(mappers.IPrecoMapper)),
+		)),
 
-		// Should initialize the controllers and call the registerRoutes methods with fx.Invoke
+
+		// Should initialize the kafka producer and add a hook to close it on application shutdown
+		// Close kafka producer on application shutdown, to avoid memory leaks
+		fx.Provide(fx.Annotate(akafka.NewKafkaProducer, fx.As(new(akafka.IKafkaProducer)))),
+		fx.Invoke(func(lifecycle fx.Lifecycle, producer akafka.IKafkaProducer) {
+			lifecycle.Append(fx.Hook{
+				OnStop: func(ctx context.Context) error {  // Recebe o contexto aqui
+					if err := producer.Close(); err != nil {
+						log.Fatalf("Failed to close producer: %v", err)
+					}
+					return nil
+				},
+			})
+		}),
+
+		// Should initialize the controllers and call the registerRoutes and registerEventListeners methods with fx.Invoke
         fx.Provide(controllers.NewPrecoController),
         fx.Invoke(func(precoController *controllers.PrecoController) {
             precoController.RegisterRoutes()
+			precoController.RegisterEventListeners()
         }),
-
-		// Should configure the AKafkaConsumer struct providing the consumerGroup and topics
-		// This turns the AKafkaConsumer struct into a dependency that can be injected into the NewKafkaConsumer function
-		// Doing this, we can create consumers with different configurations for different modules
-		fx.Provide(func() *akafka.AKafkaConsumer {
-			return &akafka.AKafkaConsumer{
-				ConsumerGroup: "gopportunities-preco",   // Defina o nome do grupo de consumidores
-				Topics: []string{"test", "test2"},  // Defina os tópicos que deseja consumir
-			}
-		}),
-		fx.Invoke(func(config *config.Config, consumer *akafka.AKafkaConsumer) {
-			akafka.NewKafkaConsumer(config, consumer)
-		}),
 	)
 }

@@ -1,75 +1,68 @@
 package akafka
 
 import (
-	"log/slog"
-	"os"
+	"context"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/fnunezzz/go-logger"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
+	"github.com/segmentio/kafka-go"
 )
 
 // TODO: refactor to use configs and all the other stuff
 
 type IKafkaProducer interface {
-	SendMessage(topic string, message string, key string) error
+	SendMessage(pctx context.Context, topic string, message string, key string, headers map[string]string) error
+	Close() error
 }
 
 type AKafkaProducer struct  {
-	producer *kafka.Producer
+	producer *kafka.Writer
 }
 
-func NewKafkaProducer(config *config.Config) (*AKafkaProducer, error) {
-	kafkaProducer, err := kafka.NewProducer(&kafka.ConfigMap{
-		"bootstrap.servers": "localhost:9091",
-		"client.id": "gopportunities",
-		"acks": "all",
-		"batch.num.messages": 10,
-		"queue.buffering.max.messages": 100000,
-		"retries": 10,
-
-	})
-
-
-	if err != nil {
-		slog.Error("Failed to start a kafka producer", "error", err)
-		os.Exit(1)
-		return nil, err
-	}
-
+func NewKafkaProducer(config *config.Config) *AKafkaProducer {
 	return &AKafkaProducer{
-		producer: kafkaProducer,
-	}, nil
+		producer: &kafka.Writer{
+			Addr: kafka.TCP("localhost:9091"), // TODO: change to config
+			Balancer: &kafka.LeastBytes{},
+			BatchSize: 1000, // TODO: change to config
+			BatchTimeout: 50 * time.Millisecond, // TODO: change to config
+			MaxAttempts: config.Kafka.ProducerRetries ,
+			RequiredAcks: kafka.RequireAll, // TODO: change to config
+			Async: false, // TODO: change to config (DEFAULT: false)
+			ErrorLogger: kafka.LoggerFunc(logger.Get().Errorf),
+		},
+	}
 }
 
-func (p *AKafkaProducer) SendMessage(topic string, message string, key string) error {
+func (p *AKafkaProducer) SendMessage(pctx context.Context, topic string, message string, key string, headers map[string]string) error {
+	headersConverted := convertHeaders(headers)
 
-	deliveryChan := make(chan kafka.Event, 100000)
-
-	err := p.producer.Produce(&kafka.Message{
-		Timestamp: time.Now(),
-		TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
-		Value: []byte(message),
-	},
-		deliveryChan,
+	err := p.producer.WriteMessages(
+		pctx,
+		kafka.Message{
+			Topic: topic,
+			Time: time.Now(),
+			Key: []byte(key),
+			Value: []byte(message),
+			Headers: headersConverted,
+		},
 	)
 
 	if err != nil {
-		slog.Error("Failed to produce message", "error", err)
 		return err
 	}
-
-	e := <-deliveryChan
-
-	m := e.(*kafka.Message)
-
-	if m.TopicPartition.Error != nil {
-		slog.Error("Delivery failed", "error", m.TopicPartition.Error)
-		return m.TopicPartition.Error
-	} else {
-		// TODO: change to debug
-		slog.Info("Delivered message to topic", "topic", *m.TopicPartition.Topic)
-	}
-
 	return nil
+}
+
+func convertHeaders(headers map[string]string) []kafka.Header {
+	var kafkaHeaders []kafka.Header
+	for k, v := range headers {
+		kafkaHeaders = append(kafkaHeaders, kafka.Header{Key: k, Value: []byte(v)})
+	}
+	return kafkaHeaders
+}
+
+func (p *AKafkaProducer) Close() error {
+	return p.producer.Close()
 }

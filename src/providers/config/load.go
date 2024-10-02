@@ -1,11 +1,11 @@
 package config
 
 import (
-	"log"
 	"os"
 	"sync/atomic"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/fnunezzz/go-logger"
 )
 
 type Option func(*env.Options)
@@ -28,7 +28,7 @@ func Get() Config {
 }
 
 // Init will start all the environments variable into the Config struct
-// TODO: change the value below to the correct app name
+// Usage: change the value below to the correct app name
 func Init() *Config {
 	cfg := Config{}
 	load("gopportunities", &cfg)
@@ -38,11 +38,13 @@ func Init() *Config {
 
 // Load will map all the envs to the reference struct
 func load(appName string, reference *Config) {
+	sLog := logger.Get()
+
 	if len(appName) > 0 {
 		os.Setenv("APP_NAME", appName)
 	}
 
 	if err := env.Parse(reference); err != nil {
-		log.Panicf("error parsing configs - %+v", err)
+		sLog.Errorf("error parsing configs - %+v", err)
 	}
 }

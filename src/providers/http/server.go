@@ -3,10 +3,10 @@ package httpServer
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
+	"github.com/fnunezzz/go-logger"
 	"github.com/labstack/echo"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	"go.uber.org/fx"
@@ -49,23 +49,21 @@ func NewServer(
 ) *HttpServer {
 	server := echo.New()
 
+	sLog := logger.Get()
+
 	lc.Append(fx.Hook{
 		OnStart: func(context.Context) error {
 			srv := http.Server{
-				Addr: fmt.Sprintf(":%d", 3000),
+				Addr: fmt.Sprintf(":%d", 3000), // TODO: change to config
 			}
-
-
-			fmt.Printf("%s", srv.Addr)
 			go func() {
 				if err := server.Start(srv.Addr); err != nil && err != http.ErrServerClosed {
-					log.Fatal("shutting down the server")
+					sLog.Errorf("error starting server on port %d: %s", 3000, err)
 				}
 			}()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			fmt.Println("Stopping client")
 			server.Shutdown(ctx)
 			return nil
 		},
