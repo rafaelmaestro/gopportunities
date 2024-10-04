@@ -14,6 +14,7 @@ type GormDatabase struct {
 }
 
 func NewDatabase(config *config.Config) (*GormDatabase, error) {
+	fmt.Println("config", config)
 	sLog := logger.Get()
 
 	dbConnectionRetries := config.Db.ConnectionRetries

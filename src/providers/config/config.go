@@ -15,9 +15,14 @@ type DbConfig struct {
 }
 
 type KafkaConfig struct {
-	Brokers           string `env:"BROKERS"`
-	ConnectionRetries int    `env:"CONNECTION_RETRIES"`
-	ProducerRetries   int    `env:"PRODUCER_RETRIES"`
+	Brokers                  string            `env:"BROKERS"`
+	ConsumerMinBytes         string            `env:"CONSUMER_MIN_BYTES"`
+	ConsumerMaxBytes         string            `env:"CONSUMER_MAX_BYTES"`
+	HeartbeatInterval        int               `env:"HEARTBEAT_INTERVAL"`
+	ConcurrentReaders        int               `env:"CONCURRENT_READERS"`
+	GroupID                  string            `env:"GROUP_ID"`
+	SessionTimeoutMultiplier int               `env:"SESSION_TIMEOUT_MULTIPLIER"`
+	Topics                   map[string]string // Mapa de eventos e tópicos
 }
 
 type AppConfig struct {

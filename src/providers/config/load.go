@@ -32,6 +32,7 @@ func Get() Config {
 func Init() *Config {
 	cfg := Config{}
 	load("gopportunities", &cfg)
+	loadKafkaTopics(&cfg)
 	_global.Store(cfg)
 	return &cfg
 }
@@ -46,5 +47,15 @@ func load(appName string, reference *Config) {
 
 	if err := env.Parse(reference); err != nil {
 		sLog.Errorf("error parsing configs - %+v", err)
+	}
+}
+
+func loadKafkaTopics(reference *Config) {
+    reference.Kafka.Topics = map[string]string{
+        "Teste2": "test",
+    }
+
+	if err := env.Parse(reference); err != nil {
+		logger.Get().Errorf("error parsing kafka topics - %+v", err)
 	}
 }

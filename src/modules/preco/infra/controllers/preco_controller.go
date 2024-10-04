@@ -26,14 +26,14 @@ type CriarPrecoResponseProps struct {
 }
 
 type PrecoController struct {
-	config *config.Config
+	cfg *config.Config
 	httpServer *httpServer.HttpServer
 	kafkaProducer akafka.IKafkaProducer
 	criarPrecoUseCase usecase.ICriarPrecoUseCase
 }
 
 func NewPrecoController(
-	config *config.Config,
+	cfg *config.Config,
 	httpServer *httpServer.HttpServer,
 	kafkaProducer akafka.IKafkaProducer,
 	usecase usecase.ICriarPrecoUseCase,
@@ -43,6 +43,7 @@ func NewPrecoController(
 	httpServer.AppGroup = httpPrecoGroup
 
 	return &PrecoController{
+		cfg: cfg,
 		httpServer: httpServer,
 		kafkaProducer: kafkaProducer,
 		criarPrecoUseCase: usecase,
@@ -72,14 +73,15 @@ func (precoController PrecoController) Teste(pctx echo.Context) error {
 
 func (precoController PrecoController) Teste2() error {
 	kafkaConsumerConfig := &akafka.AKafkaConsumerConfig{
-		ConsumerGroup: "gopportunities-preco",
-		Topic: "test",
+		ConsumerGroup: precoController.cfg.Kafka.GroupID + "-preco",
+		Topic: precoController.cfg.Kafka.Topics["Teste2"],
+		ConcurrentReaders: precoController.cfg.Kafka.ConcurrentReaders,
 		Handle: func(ctx context.Context, msg *akafka.AKafkaMessage) error {
 			fmt.Printf("[Handler Function] Received message at offset %d: %s = %s\n", msg.AMessage.Offset, string(msg.AMessage.Key), string(msg.AMessage.Value))
 			return nil
 		},
 	}
-	go akafka.NewKafkaConsumer(context.Background(), precoController.config, kafkaConsumerConfig)
+	go akafka.NewKafkaConsumer(precoController.cfg, kafkaConsumerConfig)
 
 
 	return nil

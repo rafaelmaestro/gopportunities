@@ -25,9 +25,8 @@ func NewKafkaProducer(config *config.Config) *AKafkaProducer {
 		producer: &kafka.Writer{
 			Addr: kafka.TCP("localhost:9091"), // TODO: change to config
 			Balancer: &kafka.LeastBytes{},
-			BatchSize: 1000, // TODO: change to config
+			BatchSize: 100, // TODO: change to config
 			BatchTimeout: 50 * time.Millisecond, // TODO: change to config
-			MaxAttempts: config.Kafka.ProducerRetries ,
 			RequiredAcks: kafka.RequireAll, // TODO: change to config
 			Async: false, // TODO: change to config (DEFAULT: false)
 			ErrorLogger: kafka.LoggerFunc(logger.Get().Errorf),
