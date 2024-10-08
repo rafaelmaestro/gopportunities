@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
+	"github.com/rafaelmaestro/gopportunities/src/providers/aredis"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
 )
@@ -30,6 +31,7 @@ type PrecoController struct {
 	httpServer *httpServer.HttpServer
 	kafkaProducer akafka.IKafkaProducer
 	criarPrecoUseCase usecase.ICriarPrecoUseCase
+	cacheClient aredis.ICacheClient
 }
 
 func NewPrecoController(
@@ -37,6 +39,7 @@ func NewPrecoController(
 	httpServer *httpServer.HttpServer,
 	kafkaProducer akafka.IKafkaProducer,
 	usecase usecase.ICriarPrecoUseCase,
+	cacheClient aredis.ICacheClient,
 ) *PrecoController {
 	httpPrecoGroup := httpServer.AppGroup.Group("/preco")
 
@@ -47,12 +50,15 @@ func NewPrecoController(
 		httpServer: httpServer,
 		kafkaProducer: kafkaProducer,
 		criarPrecoUseCase: usecase,
+		cacheClient: cacheClient,
 	}
 }
 
 func (precoController PrecoController) RegisterRoutes() {
 	precoController.httpServer.AppGroup.GET("/health", precoController.HealthCheck)
 	precoController.httpServer.AppGroup.GET("/teste", precoController.Teste)
+	precoController.httpServer.AppGroup.POST("/", precoController.CriarPreco)
+	precoController.httpServer.AppGroup.GET("/redis", precoController.TesteRedis)
 }
 
 func (precoController PrecoController) RegisterEventListeners() {
@@ -87,31 +93,44 @@ func (precoController PrecoController) Teste2() error {
 	return nil
 }
 
+func (precoController PrecoController) TesteRedis(pctx echo.Context) error {
+	err := precoController.cacheClient.Set(pctx.Request().Context(), "teste", "teste", 0); if err != nil {
+		fmt.Println(err)
+		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
 
-// func (s CoreController) CriarPreco() {
-// 	var userRequest CriarPrecoRequestProps
 
-	// if  err := s.context.ShouldBindJSON(&userRequest); err != nil {
-	// 	s.context.JSON(400, gin.H{"error": err.Error()})
-	// 	return
-	// }
+	testeKey, err := precoController.cacheClient.Get(pctx.Request().Context(), "teste")
 
-	// preco, err := s.criarPrecoUseCase.Execute(userRequest.Sku, userRequest.Nome, userRequest.Valor)
+	if err != nil {
+		fmt.Println(err)
+		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
 
-	// if err != nil {
-	// 	s.context.JSON(400, gin.H{"error": err.Error()})
 
-	// 	return
-	// }
+	fmt.Println(testeKey)
+	return pctx.JSON(http.StatusOK, map[string]string{"status": testeKey})
+}
 
-	// response := CriarPrecoResponseProps{
-	// 	Id: preco.GetId(),
-	// 	Sku: preco.GetProduto().GetSKU(),
-	// 	Nome: preco.GetProduto().GetNome(),
-	// 	Valor: preco.GetValor(),
-	// }
+func (precoController PrecoController) CriarPreco(pctx echo.Context) error {
+	var userRequest CriarPrecoRequestProps
 
-	// s.context.JSON(200, response)
+	if err := pctx.Bind(&userRequest); err != nil {
+		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
 
-// 	fmt.Println(userRequest)
-// }
+	preco, err := precoController.criarPrecoUseCase.Execute(userRequest.Sku, userRequest.Nome, userRequest.Valor)
+
+	if err != nil {
+		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	response := CriarPrecoResponseProps{
+		Id: preco.GetId(),
+		Sku: preco.GetProduto().GetSKU(),
+		Nome: preco.GetProduto().GetNome(),
+		Valor: preco.GetValor(),
+	}
+
+	return pctx.JSON(http.StatusOK, response)
+}

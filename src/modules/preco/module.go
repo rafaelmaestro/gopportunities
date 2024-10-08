@@ -9,6 +9,7 @@ import (
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/mappers"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/repositories"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
+	"github.com/rafaelmaestro/gopportunities/src/providers/aredis"
 	"go.uber.org/fx"
 )
 
@@ -28,6 +29,11 @@ func Module() fx.Option {
 		fx.Provide(fx.Annotate(
 			mappers.NewPrecoMapper, fx.As(new(mappers.IPrecoMapper)),
 		)),
+
+		fx.Provide(fx.Annotate(
+			aredis.NewCacheClient, fx.As(new(aredis.ICacheClient)),
+		)),
+		// fx.Provide(aredis.NewCacheClient),
 
 
 		// Should initialize the kafka producer and add a hook to close it on application shutdown

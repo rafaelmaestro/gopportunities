@@ -11,7 +11,6 @@ import (
 	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func main() {
@@ -32,9 +31,10 @@ func main() {
     }
 
 	// Initialize dd-tracer (Datadog)
-	tracer.Start()
+	// Commented because we dont have the datadog agent running on the new o2b cluster
+	// tracer.Start()
 
-	defer tracer.Stop()
+	// defer tracer.Stop()
 
 	app := fx.New(
 		loggerOption,
