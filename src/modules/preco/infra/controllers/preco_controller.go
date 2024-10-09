@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
-	"github.com/rafaelmaestro/gopportunities/src/providers/aredis"
+	"github.com/rafaelmaestro/gopportunities/src/providers/cache"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
 )
@@ -31,7 +31,7 @@ type PrecoController struct {
 	httpServer *httpServer.HttpServer
 	kafkaProducer akafka.IKafkaProducer
 	criarPrecoUseCase usecase.ICriarPrecoUseCase
-	cacheClient aredis.ICacheClient
+	cacheClient cache.ICacheClient
 }
 
 func NewPrecoController(
@@ -39,29 +39,34 @@ func NewPrecoController(
 	httpServer *httpServer.HttpServer,
 	kafkaProducer akafka.IKafkaProducer,
 	usecase usecase.ICriarPrecoUseCase,
-	cacheClient aredis.ICacheClient,
+	cacheClient cache.ICacheClient,
 ) *PrecoController {
 	httpPrecoGroup := httpServer.AppGroup.Group("/preco")
 
 	httpServer.AppGroup = httpPrecoGroup
 
-	return &PrecoController{
+	controller := &PrecoController{
 		cfg: cfg,
 		httpServer: httpServer,
 		kafkaProducer: kafkaProducer,
 		criarPrecoUseCase: usecase,
 		cacheClient: cacheClient,
 	}
+
+	controller.registerRoutes()
+	controller.registerEventListeners()
+
+	return controller
 }
 
-func (precoController PrecoController) RegisterRoutes() {
+func (precoController PrecoController) registerRoutes() {
 	precoController.httpServer.AppGroup.GET("/health", precoController.HealthCheck)
 	precoController.httpServer.AppGroup.GET("/teste", precoController.Teste)
 	precoController.httpServer.AppGroup.POST("/", precoController.CriarPreco)
 	precoController.httpServer.AppGroup.GET("/redis", precoController.TesteRedis)
 }
 
-func (precoController PrecoController) RegisterEventListeners() {
+func (precoController PrecoController) registerEventListeners() {
 	precoController.Teste2()
 }
 
@@ -80,7 +85,7 @@ func (precoController PrecoController) Teste(pctx echo.Context) error {
 func (precoController PrecoController) Teste2() error {
 	kafkaConsumerConfig := &akafka.AKafkaConsumerConfig{
 		ConsumerGroup: precoController.cfg.Kafka.GroupID + "-preco",
-		Topic: precoController.cfg.Kafka.Topics["Teste2"],
+		Topic: precoController.cfg.Kafka.Topics["TESTE_TOPIC"],
 		ConcurrentReaders: precoController.cfg.Kafka.ConcurrentReaders,
 		Handle: func(ctx context.Context, msg *akafka.AKafkaMessage) error {
 			fmt.Printf("[Handler Function] Received message at offset %d: %s = %s\n", msg.AMessage.Offset, string(msg.AMessage.Key), string(msg.AMessage.Value))

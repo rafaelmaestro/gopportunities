@@ -17,32 +17,6 @@ type HttpServer struct {
 	AppGroup *echo.Group
 }
 
-// func NewHttpServer(lc fx.Lifecycle, config *config.Config) (*HttpServer, error) {
-// 	s := echo.New()
-
-// 	srv := http.Server{
-// 		Addr: config.Http.AppPort,
-// 	}
-
-// 	lc.Append(fx.Hook{
-//         OnStart: func(ctx context.Context) error {
-//         	go func() {
-// 				if err := s.Start(srv.Addr); err != nil && err != http.ErrServerClosed {
-// 					log.Fatal("shutting down the server")
-// 				}
-// 		}()
-//             return nil
-//         },
-//         OnStop: func(ctx context.Context) error {
-//             return s.Shutdown(ctx)
-//         },
-//     })
-
-// 	return &HttpServer{
-// 		Server: s,
-// 	}, nil
-// }
-
 func NewServer(
 	lc fx.Lifecycle,
 	config *config.Config,

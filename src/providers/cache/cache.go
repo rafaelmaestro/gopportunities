@@ -1,4 +1,4 @@
-package aredis
+package cache
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type CacheClient struct {
 	cc *redis.Client
 }
 
-func NewCacheClient() *CacheClient {
+func NewCacheClient() (*CacheClient, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr: "localhost:6379",
 		Password: "",
@@ -29,14 +29,14 @@ func NewCacheClient() *CacheClient {
 	pong, err := client.Ping(context.Background()).Result()
 
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	fmt.Println(pong)
 
 	return &CacheClient{
 		cc: client,
-	}
+	}, nil
 }
 
 func (c CacheClient) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {

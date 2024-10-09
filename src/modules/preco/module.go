@@ -9,7 +9,6 @@ import (
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/mappers"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/repositories"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
-	"github.com/rafaelmaestro/gopportunities/src/providers/aredis"
 	"go.uber.org/fx"
 )
 
@@ -29,11 +28,7 @@ func Module() fx.Option {
 		fx.Provide(fx.Annotate(
 			mappers.NewPrecoMapper, fx.As(new(mappers.IPrecoMapper)),
 		)),
-
-		fx.Provide(fx.Annotate(
-			aredis.NewCacheClient, fx.As(new(aredis.ICacheClient)),
-		)),
-		// fx.Provide(aredis.NewCacheClient),
+		// fx.Provide(cache.NewCacheClient),
 
 
 		// Should initialize the kafka producer and add a hook to close it on application shutdown
@@ -51,10 +46,14 @@ func Module() fx.Option {
 		}),
 
 		// Should initialize the controllers and call the registerRoutes and registerEventListeners methods with fx.Invoke
-        fx.Provide(controllers.NewPrecoController),
-        fx.Invoke(func(precoController *controllers.PrecoController) {
-            precoController.RegisterRoutes()
-			precoController.RegisterEventListeners()
-        }),
+        // fx.Provide(controllers.NewPrecoController),
+        // fx.Invoke(func(precoController *controllers.PrecoController) {
+        //     precoController.RegisterRoutes()
+		// 	precoController.RegisterEventListeners()
+        // }),
+
+
+		// Cleaner way to do the above commented code
+		fx.Invoke(controllers.NewPrecoController),
 	)
 }

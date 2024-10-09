@@ -6,6 +6,7 @@ import (
 
 	"github.com/fnunezzz/go-logger"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco"
+	"github.com/rafaelmaestro/gopportunities/src/providers/cache"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
 	"github.com/rafaelmaestro/gopportunities/src/providers/db"
 	httpServer "github.com/rafaelmaestro/gopportunities/src/providers/http"
@@ -16,7 +17,7 @@ import (
 func main() {
 
 	// Initialize logger
-	loggerEnv := logger.Environment("production")
+	loggerEnv := logger.Environment(os.Getenv("APP_ENV"))
 	logger.Init(loggerEnv)
 
 	appEnv := os.Getenv("APP_ENV")
@@ -42,6 +43,7 @@ func main() {
 		db.Module(),
 		httpServer.Module(),
 		preco.Module(),
+		cache.Module(),
 	)
 
 	app.Run()

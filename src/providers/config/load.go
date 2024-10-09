@@ -52,7 +52,7 @@ func load(appName string, reference *Config) {
 
 func loadKafkaTopics(reference *Config) {
     reference.Kafka.Topics = map[string]string{
-        "Teste2": "test",
+        "TESTE_TOPIC": "test",
     }
 
 	if err := env.Parse(reference); err != nil {
