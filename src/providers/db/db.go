@@ -27,10 +27,10 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 	newLogger := gormLogger.New(
 		sLog,
 		gormLogger.Config{
-			SlowThreshold: time.Second,
-			LogLevel:      gormLogger.Error, // Log everything
+			SlowThreshold:             time.Second,
+			LogLevel:                  gormLogger.Error, // Log everything
 			IgnoreRecordNotFoundError: true,
-			Colorful: false,
+			Colorful:                  false,
 		},
 	)
 
@@ -63,10 +63,9 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 		return nil, err
 	}
 
-	// TODO: change to config
-	sqlDb.SetMaxIdleConns(10)
-	sqlDb.SetMaxOpenConns(100)
-	sqlDb.SetConnMaxLifetime(time.Hour)
+	sqlDb.SetMaxIdleConns(config.Db.MaxIdleConnections)
+	sqlDb.SetMaxOpenConns(config.Db.MaxOpenConnections)
+	sqlDb.SetConnMaxLifetime(config.Db.ConnectionMaxLifetime)
 
 	// TODO: Migrate models (define where to put this)
 	// db.AutoMigrate(&model.PrecoModel{})

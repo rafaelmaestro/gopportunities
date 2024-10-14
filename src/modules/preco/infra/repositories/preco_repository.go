@@ -16,12 +16,13 @@ type IPrecoRepository interface {
 
 type PrecoRepository struct {
 	database *db.GormDatabase
-	mapper  *mappers.PrecoMapper
+	mapper   *mappers.PrecoMapper
 }
 
-func NewPrecoRepository(database *db.GormDatabase) *PrecoRepository {
+func NewPrecoRepository(database *db.GormDatabase, mapper *mappers.PrecoMapper) *PrecoRepository {
 	return &PrecoRepository{
-		database: &db.GormDatabase{},
+		database: database,
+		mapper:   mapper,
 	}
 }
 
