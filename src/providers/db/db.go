@@ -6,9 +6,9 @@ import (
 
 	"github.com/fnunezzz/go-logger"
 	"github.com/rafaelmaestro/gopportunities/src/providers/config"
+	"github.com/rafaelmaestro/gopportunities/src/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	gormLogger "gorm.io/gorm/logger"
 )
 
 type GormDatabase struct {
@@ -24,16 +24,6 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 		dbConnectionRetries = 3 // Valor padrão, por exemplo, 3 tentativas
 	}
 
-	newLogger := gormLogger.New(
-		sLog,
-		gormLogger.Config{
-			SlowThreshold:             time.Second,
-			LogLevel:                  gormLogger.Error, // Log everything
-			IgnoreRecordNotFoundError: true,
-			Colorful:                  false,
-		},
-	)
-
 	dbUri := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable TimeZone=America/Sao_Paulo", config.Db.Host, config.Db.Port, config.Db.User, config.Db.Name, config.Db.Pass)
 	var db *gorm.DB
 	var err error
@@ -41,8 +31,7 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 	// TODO: Montar conexão à depender do driver (postgres, mysql, etc)
 	for i := 0; i < dbConnectionRetries; i++ {
 		db, err = gorm.Open(postgres.Open(dbUri), &gorm.Config{
-			Logger: newLogger,
-			// TODO: implement logger using zeroLog, the lib Im using here doesnt implement the logger interface,
+			Logger: utils.LoggerGorm{Log: *utils.ZerologLogger()},
 		})
 
 		if err == nil {
@@ -71,12 +60,13 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 	// db.AutoMigrate(&model.PrecoModel{})
 
 	// Adding a defer to close the connection when the function ends
-	defer func() {
-		sqlDb, err := db.DB()
-		if err == nil {
-			sqlDb.Close()
-		}
-	}()
+	// TODO: Check if this is necessary
+	// defer func() {
+	// 	sqlDb, err := db.DB()
+	// 	if err == nil {
+	// 		sqlDb.Close()
+	// 	}
+	// }()
 
 	return &GormDatabase{
 		DB: db,
