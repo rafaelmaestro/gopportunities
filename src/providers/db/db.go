@@ -63,7 +63,6 @@ func NewDatabase(config *config.Config) (*GormDatabase, error) {
 		return nil, err
 	}
 
-	// TODO: change to config
 	sqlDb.SetMaxIdleConns(config.Db.MaxIdleConnections)
 	sqlDb.SetMaxOpenConns(config.Db.MaxOpenConnections)
 	sqlDb.SetConnMaxLifetime(config.Db.ConnectionMaxLifetime)
