@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/labstack/echo"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
@@ -62,7 +63,7 @@ func NewPrecoController(
 func (precoController PrecoController) registerRoutes() {
 	precoController.httpServer.AppGroup.GET("/health", precoController.HealthCheck)
 	precoController.httpServer.AppGroup.GET("/teste", precoController.Teste)
-	precoController.httpServer.AppGroup.POST("/", precoController.CriarPreco)
+	// precoController.httpServer.AppGroup.POST("/", precoController.CriarPreco)
 	precoController.httpServer.AppGroup.GET("/redis", precoController.TesteRedis)
 }
 
@@ -83,17 +84,16 @@ func (precoController PrecoController) Teste(pctx echo.Context) error {
 }
 
 func (precoController PrecoController) Teste2() error {
-	kafkaConsumerConfig := &akafka.AKafkaConsumerConfig{
+	go akafka.NewKafkaConsumer(precoController.cfg, &akafka.AKafkaConsumerConfig{
 		ConsumerGroup: precoController.cfg.Kafka.GroupID + "-preco",
 		Topic: precoController.cfg.Kafka.Topics["TESTE_TOPIC"],
 		ConcurrentReaders: precoController.cfg.Kafka.ConcurrentReaders,
-		Handle: func(ctx context.Context, msg *akafka.AKafkaMessage) error {
-			fmt.Printf("[Handler Function] Received message at offset %d: %s = %s\n", msg.AMessage.Offset, string(msg.AMessage.Key), string(msg.AMessage.Value))
+		MessageDto: reflect.TypeOf(usecase.CriarPrecoDto{}), // Modificação aqui
+		Handle: func(ctx context.Context, dto interface{}) error {
+			precoController.criarPrecoUseCase.Execute(dto.(*usecase.CriarPrecoDto)) // Conversão de tipo
 			return nil
 		},
-	}
-	go akafka.NewKafkaConsumer(precoController.cfg, kafkaConsumerConfig)
-
+	})
 
 	return nil
 }
@@ -117,25 +117,25 @@ func (precoController PrecoController) TesteRedis(pctx echo.Context) error {
 	return pctx.JSON(http.StatusOK, map[string]string{"status": testeKey})
 }
 
-func (precoController PrecoController) CriarPreco(pctx echo.Context) error {
-	var userRequest CriarPrecoRequestProps
+// func (precoController PrecoController) CriarPreco(pctx echo.Context) error {
+// 	var userRequest CriarPrecoRequestProps
 
-	if err := pctx.Bind(&userRequest); err != nil {
-		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
+// 	if err := pctx.Bind(&userRequest); err != nil {
+// 		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+// 	}
 
-	preco, err := precoController.criarPrecoUseCase.Execute(userRequest.Sku, userRequest.Nome, userRequest.Valor)
+// 	preco, err := precoController.criarPrecoUseCase.Execute(userRequest.Sku, userRequest.Nome, userRequest.Valor)
 
-	if err != nil {
-		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
-	}
+// 	if err != nil {
+// 		return pctx.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+// 	}
 
-	response := CriarPrecoResponseProps{
-		Id: preco.GetId(),
-		Sku: preco.GetProduto().GetSKU(),
-		Nome: preco.GetProduto().GetNome(),
-		Valor: preco.GetValor(),
-	}
+// 	response := CriarPrecoResponseProps{
+// 		Id: preco.GetId(),
+// 		Sku: preco.GetProduto().GetSKU(),
+// 		Nome: preco.GetProduto().GetNome(),
+// 		Valor: preco.GetValor(),
+// 	}
 
-	return pctx.JSON(http.StatusOK, response)
-}
+// 	return pctx.JSON(http.StatusOK, response)
+// }

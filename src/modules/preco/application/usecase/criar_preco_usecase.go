@@ -7,6 +7,13 @@ import (
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/repositories"
 )
 
+
+type CriarPrecoDto struct {
+	Sku   int     `json:"sku"`
+	Nome  string  `json:"nome"`
+	Valor float64 `json:"valor"`
+}
+
 type CriarPrecoUseCase struct {
 	// instancias de repositorios
 	// instancias de servicos
@@ -14,7 +21,7 @@ type CriarPrecoUseCase struct {
 }
 
 type ICriarPrecoUseCase interface {
-	Execute(sku int, nome string, valor float64) (*domain.PrecoAggregate, error)
+	Execute(props *CriarPrecoDto) (*domain.PrecoAggregate, error)
 }
 
 func NewCriarPrecoUseCase(precoRepository repositories.IPrecoRepository) *CriarPrecoUseCase {
@@ -24,14 +31,19 @@ func NewCriarPrecoUseCase(precoRepository repositories.IPrecoRepository) *CriarP
 	}
 }
 
-func (u *CriarPrecoUseCase) Execute(sku int, nome string, valor float64) (*domain.PrecoAggregate, error) {
-	produtoObject, err := domain.NewProduto(sku, nome)
+func (u *CriarPrecoUseCase) Execute(props *CriarPrecoDto) (*domain.PrecoAggregate, error) { // TODO: return dto
+
+
+	fmt.Println("CriarPrecoUseCase.Execute")
+	fmt.Print("%v", props)
+
+	produtoObject, err := domain.NewProduto(props.Sku, props.Nome)
 
 	if err != nil {
 		return nil,err
 	}
 
-	preco, err := domain.NewPreco(produtoObject, valor)
+	preco, err := domain.NewPreco(produtoObject, props.Valor)
 
 	if err != nil {
 		return nil,err

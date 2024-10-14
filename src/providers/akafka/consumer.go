@@ -2,6 +2,8 @@ package akafka
 
 import (
 	"context"
+	"encoding/json"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -23,7 +25,8 @@ type AKafkaConsumerConfig struct {
 	ConsumerGroup string
 	Topic       string
 	ConcurrentReaders int // this config is useful here because we can set different number of concurrent readers for different topics
-	Handle 	  func(ctx context.Context, msg *AKafkaMessage) error
+	MessageDto reflect.Type
+	Handle 	  func(ctx context.Context, dto interface{} ) error
 }
 
 func NewKafkaConsumer(cfg *config.Config, kafkaConsumerConfig *AKafkaConsumerConfig) error {
@@ -73,11 +76,15 @@ func NewKafkaConsumer(cfg *config.Config, kafkaConsumerConfig *AKafkaConsumerCon
 					continue
 				}
 
-				msg := &AKafkaMessage{
-					AMessage: &message,
-				}
+                dtoInstance := reflect.New(kafkaConsumerConfig.MessageDto).Interface()
+                if err := json.Unmarshal(message.Value, dtoInstance); err != nil {
+                    sLog.Errorf("failed to unmarshal message: %v", err)
+                    continue
+                }
 
-				kafkaConsumerConfig.Handle(ctx, msg)
+                if err := kafkaConsumerConfig.Handle(ctx, dtoInstance); err != nil {
+                    sLog.Errorf("error handling message: %v", err)
+                }
 			}
 		}()
 	}
