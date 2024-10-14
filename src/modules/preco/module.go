@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/application/usecase"
-	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/controllers"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/mappers"
 	"github.com/rafaelmaestro/gopportunities/src/modules/preco/infra/repositories"
 	"github.com/rafaelmaestro/gopportunities/src/providers/akafka"
@@ -54,6 +53,6 @@ func Module() fx.Option {
 
 
 		// Cleaner way to do the above commented code
-		fx.Invoke(controllers.NewPrecoController),
+		fx.Invoke(NewPrecoController),
 	)
 }
